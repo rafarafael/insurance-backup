@@ -1,5 +1,7 @@
 package com.example.insuranceclaim_backend.config;
 
+import java.net.URI;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,11 +34,12 @@ public class DynamoDbConfig {
                         AwsBasicCredentials.create(accessKeyId, secretKey)
                 ));
 
-        // Conecta ao endpoint local se configurado
         if (dynamoDbEndpoint != null && !dynamoDbEndpoint.isEmpty()) {
-            builder.endpointOverride(java.net.URI.create(dynamoDbEndpoint));
+            builder.endpointOverride(URI.create(dynamoDbEndpoint));
         }
 
         return builder.build();
     }
 }
+
+

@@ -2,10 +2,11 @@ package com.example.insuranceclaim_backend.controller;
 
 import com.example.insuranceclaim_backend.model.InsuranceClaim;
 import com.example.insuranceclaim_backend.service.InsuranceClaimService;
-//import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -14,7 +15,6 @@ public class InsuranceClaimController {
 
     private final InsuranceClaimService insuranceClaimService;
 
-    //@Autowired
     public InsuranceClaimController(InsuranceClaimService insuranceClaimService) {
         this.insuranceClaimService = insuranceClaimService;
     }
@@ -23,11 +23,14 @@ public class InsuranceClaimController {
      * Endpoint para criar ou atualizar um sinistro.
      *
      * @param insuranceClaim Objeto contendo os dados do sinistro.
+     * @param file Arquivo opcional associado ao sinistro.
      * @return Mensagem de sucesso.
      */
     @PostMapping
-    public ResponseEntity<String> createOrUpdateClaim(@RequestBody InsuranceClaim insuranceClaim) {
-        insuranceClaimService.saveInsuranceClaim(insuranceClaim);
+    public ResponseEntity<String> createOrUpdateClaim(
+            @ModelAttribute InsuranceClaim insuranceClaim,
+            @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
+        insuranceClaimService.saveInsuranceClaim(insuranceClaim, file);
         return ResponseEntity.ok("Insurance claim created or updated successfully!");
     }
 

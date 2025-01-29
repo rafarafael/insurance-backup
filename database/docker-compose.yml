@@ -1,0 +1,15 @@
+version: "3.8"
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    container_name: dynamodb_local
+    ports:
+      - "8000:8000"  # Porta mapeada para o host
+    volumes:
+      - ./data:/home/dynamodblocal  # Persistência local para o banco de dados
+      - ./data/init-tables.sh:/docker-entrypoint-initdb.d/init-tables.sh  # Mapeia o script de inicialização
+    environment:
+      - AWS_ACCESS_KEY_ID=fakeAccessKey
+      - AWS_SECRET_ACCESS_KEY=fakeSecretKey
+    entrypoint: ["/bin/sh", "-c", "/docker-entrypoint-initdb.d/init-tables.sh && java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb"]
