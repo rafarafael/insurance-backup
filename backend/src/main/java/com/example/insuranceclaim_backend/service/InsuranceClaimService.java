@@ -4,32 +4,42 @@ import com.example.insuranceclaim_backend.model.InsuranceClaim;
 import com.example.insuranceclaim_backend.repository.InsuranceClaimRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class InsuranceClaimService {
 
     private final InsuranceClaimRepository insuranceClaimRepository;
+    private final S3Client s3Client;
+    private final String bucketName = "bucket-s3"; // Defina o nome do bucket S3
 
-    public InsuranceClaimService(InsuranceClaimRepository insuranceClaimRepository) {
+    public InsuranceClaimService(InsuranceClaimRepository insuranceClaimRepository, S3Client s3Client) {
         this.insuranceClaimRepository = insuranceClaimRepository;
+        this.s3Client = s3Client;
     }
 
-    /**
-     * Salva ou atualiza um sinistro, incluindo opcionalmente o arquivo.
-     *
-     * @param insuranceClaim Objeto do sinistro a ser salvo.
-     * @param file Arquivo opcional associado ao sinistro.
-     */
     public void saveInsuranceClaim(InsuranceClaim insuranceClaim, MultipartFile file) throws IOException {
         if (file != null && !file.isEmpty()) {
-            // Processar o arquivo (salvamento local ou upload a serviço externo)
-            String fileName = file.getOriginalFilename();
-            insuranceClaim.setFileName(fileName);
-            // Você pode implementar lógica adicional para salvar o arquivo (ex.: S3)
+            String fileKey = UUID.randomUUID() + "_" + file.getOriginalFilename();
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileKey)
+                    .build(),
+                    software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
+            
+            String fileUrl = s3Client.utilities().getUrl(GetUrlRequest.builder()
+                    .bucket(bucketName)
+                    .key(fileKey)
+                    .build()).toExternalForm();
+            
+            insuranceClaim.setFileName(fileUrl);
         }
         insuranceClaimRepository.save(insuranceClaim);
     }

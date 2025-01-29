@@ -20,18 +20,18 @@ public class InsuranceClaimController {
     }
 
     /**
-     * Endpoint para criar ou atualizar um sinistro.
+     * Endpoint para criar ou atualizar um sinistro, incluindo upload opcional de arquivo.
      *
      * @param insuranceClaim Objeto contendo os dados do sinistro.
      * @param file Arquivo opcional associado ao sinistro.
-     * @return Mensagem de sucesso.
+     * @return Mensagem de sucesso com a URL do arquivo (caso seja enviado).
      */
     @PostMapping
     public ResponseEntity<String> createOrUpdateClaim(
             @ModelAttribute InsuranceClaim insuranceClaim,
             @RequestParam(value = "file", required = false) MultipartFile file) throws IOException {
         insuranceClaimService.saveInsuranceClaim(insuranceClaim, file);
-        return ResponseEntity.ok("Insurance claim created or updated successfully!");
+        return ResponseEntity.ok("Insurance claim saved. File URL: " + insuranceClaim.getFileName());
     }
 
     /**

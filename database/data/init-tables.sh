@@ -9,7 +9,7 @@ aws dynamodb create-table \
     --attribute-definitions AttributeName=insuranceClaimId,AttributeType=S \
     --key-schema AttributeName=insuranceClaimId,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-    --endpoint-url http://localhost:8000
+    --endpoint-url http://localhost:4566
 
 # Criação da tabela Clients
 aws dynamodb create-table \
@@ -17,6 +17,6 @@ aws dynamodb create-table \
     --attribute-definitions AttributeName=clientId,AttributeType=S \
     --key-schema AttributeName=clientId,KeyType=HASH \
     --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-    --endpoint-url http://localhost:8000
+    --endpoint-url http://localhost:4566
 
 echo "Tables created successfully."

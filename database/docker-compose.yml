@@ -1,15 +1,18 @@
 version: "3.8"
 
 services:
-  dynamodb:
-    image: amazon/dynamodb-local
-    container_name: dynamodb_local
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
     ports:
-      - "8000:8000"  # Porta mapeada para o host
-    volumes:
-      - ./data:/home/dynamodblocal  # Persistência local para o banco de dados
-      - ./data/init-tables.sh:/docker-entrypoint-initdb.d/init-tables.sh  # Mapeia o script de inicialização
+      - "4566:4566"
     environment:
+      - SERVICES=s3,dynamodb
       - AWS_ACCESS_KEY_ID=fakeAccessKey
       - AWS_SECRET_ACCESS_KEY=fakeSecretKey
-    entrypoint: ["/bin/sh", "-c", "/docker-entrypoint-initdb.d/init-tables.sh && java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb"]
+      - AWS_DEFAULT_REGION=us-west-2  # ✅ Garantir que o LocalStack use a mesma região
+      - PERSISTENCE=1
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./data/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh"
+      - "./data/init-tables.sh:/etc/localstack/init/ready.d/init-tables.sh"  # ⬅️ Adicionar o script do DynamoDB ao LocalStack
