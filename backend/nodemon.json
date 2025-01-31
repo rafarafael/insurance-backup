@@ -3,5 +3,5 @@
     "src/main/java"
   ],
   "ext": "java",
-  "exec": "mvn spring-boot:run"
+  "exec": "mvn clean install && mvn spring-boot:run"
 }

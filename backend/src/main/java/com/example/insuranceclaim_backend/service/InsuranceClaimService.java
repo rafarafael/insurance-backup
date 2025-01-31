@@ -1,64 +1,77 @@
 package com.example.insuranceclaim_backend.service;
 
 import com.example.insuranceclaim_backend.model.InsuranceClaim;
+import com.example.insuranceclaim_backend.model.ClaimImage;
 import com.example.insuranceclaim_backend.repository.InsuranceClaimRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.GetUrlRequest;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class InsuranceClaimService {
 
     private final InsuranceClaimRepository insuranceClaimRepository;
-    private final S3Client s3Client;
-    private final String bucketName = "bucket-s3"; // Defina o nome do bucket S3
+    private final ClaimImageService claimImageService;
 
-    public InsuranceClaimService(InsuranceClaimRepository insuranceClaimRepository, S3Client s3Client) {
+    public InsuranceClaimService(InsuranceClaimRepository insuranceClaimRepository, ClaimImageService claimImageService) {
         this.insuranceClaimRepository = insuranceClaimRepository;
-        this.s3Client = s3Client;
+        this.claimImageService = claimImageService;
     }
 
-    public void saveInsuranceClaim(InsuranceClaim insuranceClaim, MultipartFile file) throws IOException {
-        if (file != null && !file.isEmpty()) {
-            String fileKey = UUID.randomUUID() + "_" + file.getOriginalFilename();
-            s3Client.putObject(PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(fileKey)
-                    .build(),
-                    software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes()));
-            
-            String fileUrl = s3Client.utilities().getUrl(GetUrlRequest.builder()
-                    .bucket(bucketName)
-                    .key(fileKey)
-                    .build()).toExternalForm();
-            
-            insuranceClaim.setFileName(fileUrl);
-        }
+    /**
+     * Salva ou atualiza um sinistro no banco de dados.
+     *
+     * @param insuranceClaim Objeto contendo os dados do sinistro.
+     */
+    public void saveInsuranceClaim(InsuranceClaim insuranceClaim) {
         insuranceClaimRepository.save(insuranceClaim);
     }
 
+    /**
+     * Busca um sinistro pelo ID e adiciona as imagens associadas.
+     *
+     * @param insuranceClaimId ID do sinistro.
+     * @return O sinistro com as imagens associadas ou null se não encontrado.
+     */
     public InsuranceClaim getInsuranceClaimById(String insuranceClaimId) {
-        return insuranceClaimRepository.findById(insuranceClaimId);
+        InsuranceClaim claim = insuranceClaimRepository.findById(insuranceClaimId);
+        if (claim != null) {
+            // Buscar imagens associadas e definir no objeto do sinistro
+            List<ClaimImage> images = claimImageService.getImagesByClaimId(insuranceClaimId);
+            claim.setImageIds(images.stream().map(ClaimImage::getImageId).collect(Collectors.toList()));
+        }
+        return claim;
     }
 
+    /**
+     * Remove um sinistro e todas as imagens associadas.
+     *
+     * @param insuranceClaimId ID do sinistro a ser removido.
+     */
     public void deleteInsuranceClaim(String insuranceClaimId) {
+        // Primeiro, remove todas as imagens associadas ao sinistro
+        claimImageService.deleteImagesByClaimId(insuranceClaimId);
+
+        // Depois, remove o próprio sinistro
         insuranceClaimRepository.delete(insuranceClaimId);
     }
 
+    /**
+     * Retorna todos os sinistros, com um filtro opcional por status.
+     *
+     * @param status (Opcional) Filtra sinistros pelo status ("pending", "under_review", "completed").
+     * @return Lista de sinistros filtrados ou todos os sinistros se o status for nulo.
+     */
     public List<InsuranceClaim> getAllInsuranceClaims(String status) {
         List<InsuranceClaim> allClaims = insuranceClaimRepository.findAll();
+        
         if (status != null && !status.isEmpty()) {
             return allClaims.stream()
                     .filter(claim -> claim.getStatus().equalsIgnoreCase(status))
                     .collect(Collectors.toList());
         }
+
         return allClaims;
     }
 }

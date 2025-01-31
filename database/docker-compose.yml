@@ -10,9 +10,11 @@ services:
       - SERVICES=s3,dynamodb
       - AWS_ACCESS_KEY_ID=fakeAccessKey
       - AWS_SECRET_ACCESS_KEY=fakeSecretKey
-      - AWS_DEFAULT_REGION=us-west-2  # ✅ Garantir que o LocalStack use a mesma região
-      - PERSISTENCE=1
+      - AWS_DEFAULT_REGION=us-west-2
+      - LS_LOG=info
+      - TMPDIR=/tmp/localstack
     volumes:
+      - "./localstack_data:/tmp/localstack" # Persistência dos dados
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./data/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh"
-      - "./data/init-tables.sh:/etc/localstack/init/ready.d/init-tables.sh"  # ⬅️ Adicionar o script do DynamoDB ao LocalStack
+      - "./data/init-tables.sh:/etc/localstack/init/ready.d/init-tables.sh"

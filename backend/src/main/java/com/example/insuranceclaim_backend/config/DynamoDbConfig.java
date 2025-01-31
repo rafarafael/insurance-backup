@@ -5,16 +5,18 @@ import java.net.URI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
-import software.amazon.awssdk.regions.Region;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
 @Configuration
 public class DynamoDbConfig {
 
-    @Value("${aws.dynamodb.endpoint}")
+    @Value("${aws.dynamodb.endpoint:}")
     private String dynamoDbEndpoint;
 
     @Value("${aws.region}")
@@ -26,6 +28,9 @@ public class DynamoDbConfig {
     @Value("${aws.secretKey}")
     private String secretKey;
 
+    /**
+     * Configuração do DynamoDBClient para interagir com o serviço DynamoDB.
+     */
     @Bean
     public DynamoDbClient dynamoDbClient() {
         DynamoDbClientBuilder builder = DynamoDbClient.builder()
@@ -34,12 +39,21 @@ public class DynamoDbConfig {
                         AwsBasicCredentials.create(accessKeyId, secretKey)
                 ));
 
-        if (dynamoDbEndpoint != null && !dynamoDbEndpoint.isEmpty()) {
+        // Se um endpoint customizado foi definido (para LocalStack), usá-lo
+        if (dynamoDbEndpoint != null && !dynamoDbEndpoint.isBlank()) {
             builder.endpointOverride(URI.create(dynamoDbEndpoint));
         }
 
         return builder.build();
     }
+
+    /**
+     * Configuração do DynamoDbEnhancedClient para operações avançadas no DynamoDB.
+     */
+    @Bean
+    public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
+        return DynamoDbEnhancedClient.builder()
+                .dynamoDbClient(dynamoDbClient)
+                .build();
+    }
 }
-
-

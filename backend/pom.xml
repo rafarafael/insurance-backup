@@ -19,10 +19,6 @@
 	<dependencies>
 
 		<dependency>
-				<groupId>software.amazon.awssdk</groupId>
-				<artifactId>s3</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
@@ -30,7 +26,6 @@
 		<dependency>
 				<groupId>jakarta.validation</groupId>
 				<artifactId>jakarta.validation-api</artifactId>
-				<version>3.0.2</version>
 		</dependency>
 
 		<dependency>
@@ -76,49 +71,51 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>dynamodb</artifactId>
+			<version>2.30.7</version>
 		</dependency>
 
 		<!-- AWS SDK for DynamoDB Enhanced -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>dynamodb-enhanced</artifactId>
+			<version>2.30.7</version>
 		</dependency>
 
 		<!-- AWS SDK for S3 (opcional, se for usado no futuro) -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+			<version>2.30.7</version>
 		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
-		<dependencies>
-			<!-- AWS SDK BOM para garantir consistência entre os módulos -->
-			<dependency>
-				<groupId>software.amazon.awssdk</groupId>
-				<artifactId>bom</artifactId>
-				<version>2.20.28</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
+			<dependencies>
+					<dependency>
+							<groupId>software.amazon.awssdk</groupId>
+							<artifactId>bom</artifactId>
+							<version>2.30.7</version> <!-- Certifique-se de usar a versão desejada -->
+							<type>pom</type>
+							<scope>import</scope>
+					</dependency>
+			</dependencies>
 	</dependencyManagement>
 
 	<build>
-		<plugins>
-			<!-- Maven Compiler Plugin -->
+    <plugins>
+        <!-- Outros plugins -->
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<release>${java.version}</release>
-					<annotationProcessorPaths>
-						<path>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</path>
-					</annotationProcessorPaths>
-				</configuration>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>3.3.0</version>
+					<executions>
+							<execution>
+									<id>analyze</id>
+									<goals>
+											<goal>analyze</goal>
+									</goals>
+							</execution>
+					</executions>
 			</plugin>
 
 			<!-- Spring Boot Maven Plugin -->
