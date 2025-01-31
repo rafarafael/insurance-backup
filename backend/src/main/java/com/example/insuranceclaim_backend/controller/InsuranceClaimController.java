@@ -1,9 +1,7 @@
 package com.example.insuranceclaim_backend.controller;
 
 import com.example.insuranceclaim_backend.model.InsuranceClaim;
-import com.example.insuranceclaim_backend.model.ClaimImage;
 import com.example.insuranceclaim_backend.service.InsuranceClaimService;
-import com.example.insuranceclaim_backend.service.ClaimImageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,71 +10,63 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Controller para criação, atualização, consulta e remoção de sinistros,
+ * usando um único model (InsuranceClaim) e upload de apenas 1 imagem por sinistro.
+ */
 @RestController
 @RequestMapping("/insurance-claims")
 public class InsuranceClaimController {
 
     private final InsuranceClaimService insuranceClaimService;
-    private final ClaimImageService claimImageService;
 
-    public InsuranceClaimController(InsuranceClaimService insuranceClaimService, ClaimImageService claimImageService) {
+    public InsuranceClaimController(InsuranceClaimService insuranceClaimService) {
         this.insuranceClaimService = insuranceClaimService;
-        this.claimImageService = claimImageService;
     }
 
     /**
-     * Endpoint para criar ou atualizar um sinistro, incluindo upload de múltiplas imagens.
+     * Cria ou atualiza um sinistro (InsuranceClaim).
+     * Caso envie uma imagem, ela será salva no S3 e a URL armazenada em 'imageUrl'.
      *
-     * @param insuranceClaim Objeto contendo os dados do sinistro.
-     * @param files Lista de arquivos opcionais associados ao sinistro.
-     * @return Mensagem de sucesso com as URLs dos arquivos enviados.
+     * @param insuranceClaim Dados do sinistro (via @ModelAttribute).
+     * @param file           Arquivo de imagem (opcional).
+     * @return Map contendo mensagem de sucesso e o objeto salvo.
      */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createOrUpdateClaim(
             @ModelAttribute InsuranceClaim insuranceClaim,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files) throws IOException {
-        
-        // Salvar o sinistro no banco
-        insuranceClaimService.saveInsuranceClaim(insuranceClaim);
+            @RequestParam(value = "file", required = false) MultipartFile file
+    ) throws IOException {
 
-        // Se houver arquivos, processá-los e salvar no S3 + DynamoDB
-        List<ClaimImage> uploadedImages = claimImageService.uploadClaimImages(insuranceClaim.getClaimId(), files);
+        // Cria ou atualiza o sinistro no DynamoDB (com upload opcional da imagem para S3)
+        InsuranceClaim savedClaim = insuranceClaimService.createOrUpdateInsuranceClaim(insuranceClaim, file);
 
-        // Montar resposta com detalhes do sinistro e imagens
+        // Retorna uma resposta customizada com o claimId e o objeto salvo
         return ResponseEntity.ok(Map.of(
                 "message", "Insurance claim saved successfully!",
-                "claimId", insuranceClaim.getClaimId(),
-                "uploadedImages", uploadedImages
+                "claimId", savedClaim.getClaimId(),
+                "claim", savedClaim
         ));
     }
 
     /**
-     * Endpoint para buscar um sinistro pelo ID, incluindo imagens associadas.
+     * Busca um sinistro específico pelo ID.
      *
-     * @param id ID do sinistro.
-     * @return Dados do sinistro ou erro 404 se não encontrado.
+     * @param id ID do sinistro (claimId).
+     * @return O objeto InsuranceClaim, ou 404 caso não exista.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getClaimById(@PathVariable String id) {
+    public ResponseEntity<InsuranceClaim> getClaimById(@PathVariable String id) {
         InsuranceClaim claim = insuranceClaimService.getInsuranceClaimById(id);
         if (claim == null) {
             return ResponseEntity.notFound().build();
         }
-
-        // Buscar imagens associadas ao sinistro
-        List<ClaimImage> images = claimImageService.getImagesByClaimId(id);
-
-        return ResponseEntity.ok(Map.of(
-                "claim", claim,
-                "images", images
-        ));
+        return ResponseEntity.ok(claim);
     }
 
     /**
-     * Endpoint para buscar todos os sinistros, com filtro opcional pelo status.
-     *
-     * @param status (Opcional) Filtro pelo status do sinistro.
-     * @return Lista de sinistros correspondentes.
+     * Lista todos os sinistros, com filtro opcional de status.
+     * @param status (Opcional) Filtro para "pending", "under_review" ou "completed".
      */
     @GetMapping
     public ResponseEntity<List<InsuranceClaim>> getAllClaims(@RequestParam(required = false) String status) {
@@ -85,19 +75,14 @@ public class InsuranceClaimController {
     }
 
     /**
-     * Endpoint para deletar um sinistro e suas imagens associadas pelo ID.
+     * Deleta um sinistro específico (e sua imagem associada no S3, se existir).
      *
-     * @param id ID do sinistro a ser deletado.
+     * @param id ID do sinistro (claimId) a ser deletado.
      * @return Mensagem de sucesso.
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteClaimById(@PathVariable String id) {
-        // Remover imagens associadas no S3 e no banco
-        claimImageService.deleteImagesByClaimId(id);
-
-        // Remover o sinistro
         insuranceClaimService.deleteInsuranceClaim(id);
-
-        return ResponseEntity.ok("Insurance claim and associated images deleted successfully!");
+        return ResponseEntity.ok("Insurance claim and associated image deleted successfully!");
     }
 }

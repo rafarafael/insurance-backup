@@ -5,7 +5,7 @@ until aws --endpoint-url=http://localhost:4566 s3 ls --region us-west-2 >/dev/nu
   sleep 1
 done
 
-BUCKET_NAME="insurance-claim-images"
+BUCKET_NAME="bucket-s3"
 REGION="us-west-2"
 
 # Criação do bucket com configuração explícita

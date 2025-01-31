@@ -18,7 +18,10 @@ public class InsuranceClaimRepository {
         DynamoDbEnhancedClient enhancedClient = DynamoDbEnhancedClient.builder()
                 .dynamoDbClient(dynamoDbClient)
                 .build();
-        this.insuranceClaimTable = enhancedClient.table("InsuranceClaims", TableSchema.fromBean(InsuranceClaim.class));
+        this.insuranceClaimTable = enhancedClient.table(
+                "InsuranceClaims",
+                TableSchema.fromBean(InsuranceClaim.class)
+        );
     }
 
     public void save(InsuranceClaim insuranceClaim) {

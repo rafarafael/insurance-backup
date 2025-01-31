@@ -1,64 +1,37 @@
 package com.example.insuranceclaim_backend.service;
 
-import jakarta.annotation.PostConstruct;
+import java.io.IOException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
 public class S3StorageService {
-
-    private static final Logger logger = LoggerFactory.getLogger(S3StorageService.class);
 
     private final S3Client s3Client;
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
 
-    @Value("${aws.region}")
-    private String bucketRegion;
-
     public S3StorageService(S3Client s3Client) {
         this.s3Client = s3Client;
     }
 
-    @PostConstruct
-    public void init() {
-        logger.info("Nome do bucket carregado: {}", bucketName);
-        ensureBucketExists();
+    public String uploadFile(MultipartFile file, String key) throws IOException {
+        s3Client.putObject(
+                PutObjectRequest.builder().bucket(bucketName).key(key).build(),
+                software.amazon.awssdk.core.sync.RequestBody.fromBytes(file.getBytes())
+        );
+        // Retorna a URL completa (https://bucket.s3.amazonaws.com/key)
+        return "https://" + bucketName + ".s3.amazonaws.com/" + key;
     }
 
-    private void ensureBucketExists() {
-        if (bucketName == null || bucketName.isEmpty()) {
-            throw new IllegalStateException("Bucket name não pode ser nulo ou vazio!");
-        }
-        try {
-            s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
-            logger.info("Bucket '{}' já existe.", bucketName);
-        } catch (S3Exception e) {
-            if (e.statusCode() == 404) {
-                logger.warn("Bucket '{}' não encontrado. Criando agora...", bucketName);
-                try {
-                    s3Client.createBucket(CreateBucketRequest.builder()
-                            .bucket(bucketName)
-                            .createBucketConfiguration(CreateBucketConfiguration.builder()
-                                    .locationConstraint(bucketRegion)
-                                    .build())
-                            .build());
-                    logger.info("Bucket '{}' criado com sucesso na região '{}'.", bucketName, bucketRegion);
-                } catch (S3Exception ex) {
-                    if (ex.statusCode() == 409) {
-                        logger.warn("Bucket '{}' já foi criado por outra instância.", bucketName);
-                    } else {
-                        logger.error("Erro ao criar o bucket '{}': {}", bucketName, ex.getMessage(), ex);
-                    }
-                }
-            } else {
-                logger.error("Erro ao acessar o bucket '{}': {}", bucketName, e.getMessage(), e);
-            }
-        }
+    public void deleteFile(String s3Url) {
+        // Extrai a parte do 'key' a partir da URL
+        String key = s3Url.substring(s3Url.indexOf(bucketName) + bucketName.length() + 1);
+        s3Client.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(key).build());
     }
 }

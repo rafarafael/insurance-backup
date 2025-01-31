@@ -1,13 +1,12 @@
 package com.example.insuranceclaim_backend.model;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
-
-import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -25,13 +24,16 @@ public class InsuranceClaim {
     private String claimDate;
 
     @NotNull(message = "Claim type cannot be null")
-    private String claimType; // Only "collision" or "fire"
+    @Pattern(regexp = "^(collision|fire)$", message = "Claim type must be either 'collision' or 'fire'")
+    private String claimType;
 
     @NotNull(message = "Status cannot be null")
-    private String status; // Only "pending", "under_review", "completed"
+    @Pattern(regexp = "^(pending|under_review|completed)$",
+             message = "Status must be 'pending', 'under_review', or 'completed'")
+    private String status;
 
     private String observations;
-    private List<String> imageIds; // References to ClaimImage (optional)
+    private String imageUrl; // URL que ficará no S3
 
     @DynamoDbPartitionKey
     public String getClaimId() {
