@@ -1,13 +1,17 @@
 package com.example.insuranceclaim_backend.service;
 
-import com.example.insuranceclaim_backend.model.InsuranceClaim;
-import com.example.insuranceclaim_backend.repository.InsuranceClaimRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.example.insuranceclaim_backend.model.InsuranceClaim;
+import com.example.insuranceclaim_backend.repository.InsuranceClaimRepository;
+
+/**
+ * Camada de negócios para operações com sinistros (InsuranceClaim).
+ */
 @Service
 public class InsuranceClaimService {
 
@@ -21,70 +25,73 @@ public class InsuranceClaimService {
     }
 
     /**
-     * Cria ou atualiza um InsuranceClaim:
-     *  - Se 'claimId' já existir, faz merge dos campos e substitui a imagem se vier um novo arquivo.
-     *  - Se não existir, cria um novo registro.
+     * Cria um novo InsuranceClaim no banco.
      */
-    public InsuranceClaim createOrUpdateInsuranceClaim(InsuranceClaim claim, MultipartFile file) throws IOException {
-        // Verifica se existe no banco pelo claimId
-        InsuranceClaim existingClaim = insuranceClaimRepository.findById(claim.getClaimId());
-
-        // Se já existir, podemos fazer um merge básico ou simplesmente sobreescrever os campos vindos do request
-        if (existingClaim != null) {
-            // Exemplo de merge: se algum campo vier null, mantém o antigo.
-            if (claim.getClientId() == null) claim.setClientId(existingClaim.getClientId());
-            if (claim.getClaimDate() == null) claim.setClaimDate(existingClaim.getClaimDate());
-            if (claim.getClaimType() == null) claim.setClaimType(existingClaim.getClaimType());
-            if (claim.getStatus() == null)    claim.setStatus(existingClaim.getStatus());
-            if (claim.getObservations() == null) claim.setObservations(existingClaim.getObservations());
-        }
-
-        // Se foi enviado um novo arquivo, faz upload e substitui a imagem
+    public InsuranceClaim createInsuranceClaim(InsuranceClaim claim, MultipartFile file) throws IOException {
         if (file != null && !file.isEmpty()) {
-            String s3Url = s3StorageService.uploadFile(file, "claims/" + claim.getClaimId());
+            String s3Url = s3StorageService.uploadFile(file, buildS3Key(claim.getClaimId()));
             claim.setImageUrl(s3Url);
-        } else if (existingClaim != null) {
-            // Mantém a imagem antiga (se não receber um arquivo novo)
-            claim.setImageUrl(existingClaim.getImageUrl());
         }
-
-        // Salva (cria ou atualiza) no DynamoDB
         insuranceClaimRepository.save(claim);
         return claim;
     }
 
     /**
-     * Retorna um sinistro pelo ID.
+     * Atualiza um InsuranceClaim existente no banco.
      */
+    public InsuranceClaim updateInsuranceClaim(String claimId, InsuranceClaim updatedClaim, MultipartFile file) throws IOException {
+        InsuranceClaim existingClaim = insuranceClaimRepository.findById(claimId);
+
+        if (existingClaim != null) {
+            // Merge apenas os campos que não são nulos
+            if (updatedClaim.getClientId() != null) existingClaim.setClientId(updatedClaim.getClientId());
+            if (updatedClaim.getClaimDate() != null) existingClaim.setClaimDate(updatedClaim.getClaimDate());
+            if (updatedClaim.getClaimType() != null) existingClaim.setClaimType(updatedClaim.getClaimType());
+            if (updatedClaim.getStatus() != null) existingClaim.setStatus(updatedClaim.getStatus());
+            if (updatedClaim.getObservations() != null) existingClaim.setObservations(updatedClaim.getObservations());
+
+            // Se um novo arquivo foi enviado, substitui a imagem
+            if (file != null && !file.isEmpty()) {
+                if (existingClaim.getImageUrl() != null) {
+                    s3StorageService.deleteFile(existingClaim.getImageUrl());
+                }
+                String newS3Url = s3StorageService.uploadFile(file, buildS3Key(existingClaim.getClaimId()));
+                existingClaim.setImageUrl(newS3Url);
+            }
+
+            // Salva as mudanças
+            insuranceClaimRepository.save(existingClaim);
+            return existingClaim;
+        }
+
+        return null;
+    }
+
     public InsuranceClaim getInsuranceClaimById(String insuranceClaimId) {
         return insuranceClaimRepository.findById(insuranceClaimId);
     }
 
-    /**
-     * Deleta um sinistro (e sua imagem do S3) se existir.
-     */
     public void deleteInsuranceClaim(String insuranceClaimId) {
         InsuranceClaim claim = insuranceClaimRepository.findById(insuranceClaimId);
-        if (claim != null && claim.getImageUrl() != null) {
-            // Remove a imagem do S3
-            s3StorageService.deleteFile(claim.getImageUrl());
+        if (claim != null) {
+            if (claim.getImageUrl() != null) {
+                s3StorageService.deleteFile(claim.getImageUrl());
+            }
+            insuranceClaimRepository.delete(insuranceClaimId);
         }
-        // Remove o sinistro do DynamoDB
-        insuranceClaimRepository.delete(insuranceClaimId);
     }
 
-    /**
-     * Lista todos os sinistros, com filtro opcional de status.
-     */
     public List<InsuranceClaim> getAllInsuranceClaims(String status) {
         List<InsuranceClaim> allClaims = insuranceClaimRepository.findAll();
-
         if (status != null && !status.isEmpty()) {
             return allClaims.stream()
                     .filter(claim -> status.equalsIgnoreCase(claim.getStatus()))
                     .toList();
         }
-
         return allClaims;
+    }
+
+    private String buildS3Key(String claimId) {
+        return "claims/" + claimId;
     }
 }

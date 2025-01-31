@@ -12,9 +12,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=fakeSecretKey
       - AWS_DEFAULT_REGION=us-west-2
       - LS_LOG=info
-      - TMPDIR=/tmp/localstack
+      - PERSISTENCE=1  # Habilita a persistência de dados
     volumes:
-      - "./localstack_data:/tmp/localstack" # Persistência dos dados
+      - "./localstack_data:/var/lib/localstack"  # Diretório para persistência de dados
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./data/init-s3.sh:/etc/localstack/init/ready.d/init-s3.sh"
-      - "./data/init-tables.sh:/etc/localstack/init/ready.d/init-tables.sh"
+      - "./data/init-insurance-claims.sh:/etc/localstack/init/ready.d/init-insurance-claims.sh"

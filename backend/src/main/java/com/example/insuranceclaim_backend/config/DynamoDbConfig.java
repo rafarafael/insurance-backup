@@ -13,6 +13,9 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClientBuilder;
 
+/**
+ * Configuração do DynamoDB Client e Enhanced Client.
+ */
 @Configuration
 public class DynamoDbConfig {
 
@@ -28,9 +31,6 @@ public class DynamoDbConfig {
     @Value("${aws.secretKey}")
     private String secretKey;
 
-    /**
-     * Configuração do DynamoDBClient para interagir com o serviço DynamoDB.
-     */
     @Bean
     public DynamoDbClient dynamoDbClient() {
         DynamoDbClientBuilder builder = DynamoDbClient.builder()
@@ -39,7 +39,6 @@ public class DynamoDbConfig {
                         AwsBasicCredentials.create(accessKeyId, secretKey)
                 ));
 
-        // Se um endpoint customizado foi definido (para LocalStack), usá-lo
         if (dynamoDbEndpoint != null && !dynamoDbEndpoint.isBlank()) {
             builder.endpointOverride(URI.create(dynamoDbEndpoint));
         }
@@ -47,9 +46,6 @@ public class DynamoDbConfig {
         return builder.build();
     }
 
-    /**
-     * Configuração do DynamoDbEnhancedClient para operações avançadas no DynamoDB.
-     */
     @Bean
     public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
         return DynamoDbEnhancedClient.builder()

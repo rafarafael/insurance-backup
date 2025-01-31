@@ -28,15 +28,8 @@ public class S3Config {
     @Value("${aws.s3.path-style}")
     private boolean pathStyle;
 
-    /**
-     * Cria e configura o bean do S3Client.
-     * Verifica se o bucket existe e, se não existir,
-     * lança uma exceção para obrigar a criação prévia.
-     */
     @Bean
-    /* se desejar, pode remover 'public' e deixar apenas: S3Client s3Client() */
     public S3Client s3Client() {
-        // Constrói o S3Client com as configs necessárias
         S3Client s3 = S3Client.builder()
                 .region(Region.of(awsRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create())
@@ -46,30 +39,21 @@ public class S3Config {
                         .build())
                 .build();
 
-        // Verifica se o bucket existe
         ensureBucketExists(s3, bucketName);
-
         return s3;
     }
 
-    /**
-     * Método auxiliar para verificar se o bucket existe.
-     * Se não existir, lança exceção.
-     */
     private void ensureBucketExists(S3Client s3Client, String bucketName) {
         try {
             s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
         } catch (S3Exception e) {
             if (e.statusCode() == 404) {
-                // Aqui optamos por lançar exceção, obrigando a criação prévia do bucket.
                 throw new IllegalStateException(
-                        "Bucket '" + bucketName + "' não foi encontrado. "
+                        "Bucket '" + bucketName + "' not found. Create it before running the application."
                 );
             } else {
-                // Se for outro tipo de erro, relança a exceção (ex. 403, 500...)
                 throw e;
             }
         }
     }
-
 }

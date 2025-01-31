@@ -1,35 +1,37 @@
 package com.example.insuranceclaim_backend.model;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
+/**
+ * Representa um Sinistro (Insurance Claim).
+ * Observação: É possível trocar os campos "claimType" e "status" para usar Enum.
+ */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @DynamoDbBean
 public class InsuranceClaim {
 
-    @NotNull(message = "Claim ID cannot be null")
+    @NotBlank(message = "Claim ID cannot be blank")
     private String claimId;
 
-    @NotNull(message = "Client ID cannot be null")
+    @NotBlank(message = "Client ID cannot be blank")
     private String clientId;
 
-    @NotNull(message = "Claim date cannot be null")
+    @NotBlank(message = "Claim date cannot be blank")
     private String claimDate;
 
-    @NotNull(message = "Claim type cannot be null")
-    @Pattern(regexp = "^(collision|fire)$", message = "Claim type must be either 'collision' or 'fire'")
+    @NotBlank(message = "Claim type cannot be blank")
+    // @Pattern(... ) ou usar Enum
     private String claimType;
 
-    @NotNull(message = "Status cannot be null")
-    @Pattern(regexp = "^(pending|under_review|completed)$",
-             message = "Status must be 'pending', 'under_review', or 'completed'")
+    @NotBlank(message = "Status cannot be blank")
+    // @Pattern(... ) ou usar Enum
     private String status;
 
     private String observations;
