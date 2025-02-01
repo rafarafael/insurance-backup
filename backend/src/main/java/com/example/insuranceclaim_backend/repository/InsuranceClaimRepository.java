@@ -1,6 +1,7 @@
 package com.example.insuranceclaim_backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -33,15 +34,23 @@ public class InsuranceClaimRepository {
         insuranceClaimTable.putItem(insuranceClaim);
     }
 
-    public InsuranceClaim findById(String insuranceClaimId) {
-        return insuranceClaimTable.getItem(r -> r.key(k -> k.partitionValue(insuranceClaimId)));
+    public Optional<InsuranceClaim> findById(String insuranceClaimId) {
+        return Optional.ofNullable(
+                insuranceClaimTable.getItem(r -> r.key(k -> k.partitionValue(insuranceClaimId)))
+        );
     }
 
     public List<InsuranceClaim> findAll() {
         return insuranceClaimTable.scan().items().stream().toList();
     }
 
+    public boolean existsById(String insuranceClaimId) {
+        return findById(insuranceClaimId).isPresent();
+    }
+
     public void delete(String insuranceClaimId) {
-        insuranceClaimTable.deleteItem(r -> r.key(k -> k.partitionValue(insuranceClaimId)));
+        if (existsById(insuranceClaimId)) {
+            insuranceClaimTable.deleteItem(r -> r.key(k -> k.partitionValue(insuranceClaimId)));
+        }
     }
 }

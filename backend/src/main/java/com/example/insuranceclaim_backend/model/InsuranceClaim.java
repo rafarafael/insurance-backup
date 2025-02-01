@@ -7,10 +7,6 @@ import lombok.NoArgsConstructor;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 
-/**
- * Representa um Sinistro (Insurance Claim).
- * Observação: É possível trocar os campos "claimType" e "status" para usar Enum.
- */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -27,15 +23,13 @@ public class InsuranceClaim {
     private String claimDate;
 
     @NotBlank(message = "Claim type cannot be blank")
-    // @Pattern(... ) ou usar Enum
     private String claimType;
 
     @NotBlank(message = "Status cannot be blank")
-    // @Pattern(... ) ou usar Enum
     private String status;
 
     private String observations;
-    private String imageUrl; // URL que ficará no S3
+    private String imageUrl;
 
     @DynamoDbPartitionKey
     public String getClaimId() {

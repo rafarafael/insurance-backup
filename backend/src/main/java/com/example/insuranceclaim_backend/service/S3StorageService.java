@@ -1,19 +1,21 @@
 package com.example.insuranceclaim_backend.service;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
-/**
- * Serviço responsável pelo upload e deleção de arquivos no S3.
- */
 @Service
 public class S3StorageService {
 
@@ -26,33 +28,37 @@ public class S3StorageService {
         this.s3Client = s3Client;
     }
 
-    public String uploadFile(MultipartFile file, String key) throws IOException {
-        s3Client.putObject(
-                PutObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(key)
-                        .build(),
-                RequestBody.fromBytes(file.getBytes())
-        );
-
-        // Retorna a URL completa: ex: "https://bucket.s3.amazonaws.com/key"
-        return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
+    public Optional<String> uploadFile(MultipartFile file, String key) {
+        if (file == null || file.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(bucketName)
+                            .key(key)
+                            .build(),
+                    RequestBody.fromBytes(file.getBytes())
+            );
+            return Optional.of(String.format("https://%s.s3.amazonaws.com/%s", bucketName, key));
+        } catch (IOException | AwsServiceException | SdkClientException e) {
+            throw new RuntimeException("Erro ao fazer upload do arquivo para o S3", e);
+        }
     }
 
     public void deleteFile(String s3Url) {
         if (s3Url == null || s3Url.isBlank()) {
-            return; // Ou lançar exceção, dependendo da regra
+            return;
         }
-        // Extrai a parte do 'key' a partir da URL.
-        // Ex: https://bucket.s3.amazonaws.com/claims/1234
-        // key = claims/1234
-        String key = s3Url.substring(s3Url.indexOf(bucketName) + bucketName.length() + 1);
-
-        s3Client.deleteObject(DeleteObjectRequest.builder()
-                .bucket(bucketName)
-                .key(key)
-                .build());
+        try {
+            URI uri = new URI(s3Url);
+            String key = uri.getPath().substring(1);
+            s3Client.deleteObject(DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .build());
+        } catch (URISyntaxException | AwsServiceException | SdkClientException e) {
+            throw new RuntimeException("Erro ao deletar arquivo no S3", e);
+        }
     }
-
-    
 }
