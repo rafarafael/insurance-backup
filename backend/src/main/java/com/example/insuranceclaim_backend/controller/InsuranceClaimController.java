@@ -21,6 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.insuranceclaim_backend.model.InsuranceClaim;
 import com.example.insuranceclaim_backend.service.InsuranceClaimService;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 
 @RestController
@@ -33,6 +36,11 @@ public class InsuranceClaimController {
         this.insuranceClaimService = insuranceClaimService;
     }
 
+    @Operation(summary = "Create insurance claim", description = "Creates a new insurance claim if one with the provided ID does not already exist.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201", description = "Insurance claim created successfully"),
+        @ApiResponse(responseCode = "409", description = "A claim with this ID already exists")
+    })
     @PostMapping
     public ResponseEntity<Map<String, Object>> createClaim(
             @Valid @ModelAttribute InsuranceClaim insuranceClaim,
@@ -46,6 +54,11 @@ public class InsuranceClaimController {
                 ));
     }
 
+    @Operation(summary = "Update insurance claim", description = "Updates an existing insurance claim identified by its ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Insurance claim updated successfully"),
+        @ApiResponse(responseCode = "404", description = "Insurance claim not found")
+    })
     @PatchMapping("/{id}")
     public ResponseEntity<Map<String, Object>> updateClaim(
             @PathVariable String id,
@@ -55,23 +68,36 @@ public class InsuranceClaimController {
         try {
             return ResponseEntity.ok(Map.of(
                     "message", "Insurance claim updated successfully!",
-                    "claim", insuranceClaimService.updateInsuranceClaim(id, insuranceClaim, file)
-            ));
+                    "claim", insuranceClaimService.updateInsuranceClaim(id, insuranceClaim, file)));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 
+    @Operation(summary = "Get insurance claim by ID", description = "Retrieves a single insurance claim based on the provided ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved insurance claim"),
+        @ApiResponse(responseCode = "404", description = "Insurance claim not found")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<InsuranceClaim> getClaimById(@PathVariable String id) {
         return ResponseEntity.ok(insuranceClaimService.getInsuranceClaimById(id));
     }
 
+    @Operation(summary = "Get all insurance claims", description = "Retrieves all insurance claims, optionally filtered by status.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved list of insurance claims")
+    })
     @GetMapping
     public ResponseEntity<List<InsuranceClaim>> getAllClaims(@RequestParam(required = false) String status) {
         return ResponseEntity.ok(insuranceClaimService.getAllInsuranceClaims(status));
     }
 
+    @Operation(summary = "Delete insurance claim", description = "Deletes an insurance claim based on the provided ID.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Insurance claim deleted successfully"),
+        @ApiResponse(responseCode = "404", description = "Insurance claim not found")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteClaimById(@PathVariable String id) {
         try {
